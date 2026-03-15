@@ -1,0 +1,30 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: vega-agent-service
+
+# Google AI Configuration
+google:
+  ai:
+    api-key: ${GOOGLE_AI_API_KEY:}
+    timeout: 30000 # 30 seconds
+
+# Logging
+logging:
+  level:
+    com.vega: DEBUG
+    org.springframework.web: DEBUG
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+

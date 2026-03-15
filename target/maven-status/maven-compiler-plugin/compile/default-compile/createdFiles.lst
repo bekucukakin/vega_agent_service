@@ -1,0 +1,12 @@
+com/vega/agentservice/domain/dto/ConflictResolutionResponse.class
+com/vega/agentservice/infrastructure/controller/AgentController$CommitMessageApiResponse.class
+com/vega/agentservice/infrastructure/service/GoogleAIConflictResolutionService.class
+com/vega/agentservice/infrastructure/service/GoogleAICommitMessageService.class
+com/vega/agentservice/domain/dto/CommitMessageRequest.class
+com/vega/agentservice/domain/dto/ConflictResolutionRequest.class
+com/vega/agentservice/infrastructure/controller/AgentController$HealthResponse.class
+com/vega/agentservice/VegaAgentServiceApplication.class
+com/vega/agentservice/domain/service/CommitMessageService.class
+com/vega/agentservice/domain/dto/CommitMessageResponse.class
+com/vega/agentservice/domain/service/ConflictResolutionService.class
+com/vega/agentservice/infrastructure/controller/AgentController.class

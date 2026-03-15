@@ -1,0 +1,10 @@
+/home/ozangul/Downloads/vegaı/VEGA./VEGA/vega_agent_service/src/main/java/com/vega/agentservice/domain/dto/CommitMessageRequest.java
+/home/ozangul/Downloads/vegaı/VEGA./VEGA/vega_agent_service/src/main/java/com/vega/agentservice/domain/service/ConflictResolutionService.java
+/home/ozangul/Downloads/vegaı/VEGA./VEGA/vega_agent_service/src/main/java/com/vega/agentservice/domain/dto/CommitMessageResponse.java
+/home/ozangul/Downloads/vegaı/VEGA./VEGA/vega_agent_service/src/main/java/com/vega/agentservice/domain/service/CommitMessageService.java
+/home/ozangul/Downloads/vegaı/VEGA./VEGA/vega_agent_service/src/main/java/com/vega/agentservice/infrastructure/service/GoogleAICommitMessageService.java
+/home/ozangul/Downloads/vegaı/VEGA./VEGA/vega_agent_service/src/main/java/com/vega/agentservice/infrastructure/controller/AgentController.java
+/home/ozangul/Downloads/vegaı/VEGA./VEGA/vega_agent_service/src/main/java/com/vega/agentservice/domain/dto/ConflictResolutionRequest.java
+/home/ozangul/Downloads/vegaı/VEGA./VEGA/vega_agent_service/src/main/java/com/vega/agentservice/infrastructure/service/GoogleAIConflictResolutionService.java
+/home/ozangul/Downloads/vegaı/VEGA./VEGA/vega_agent_service/src/main/java/com/vega/agentservice/domain/dto/ConflictResolutionResponse.java
+/home/ozangul/Downloads/vegaı/VEGA./VEGA/vega_agent_service/src/main/java/com/vega/agentservice/VegaAgentServiceApplication.java
