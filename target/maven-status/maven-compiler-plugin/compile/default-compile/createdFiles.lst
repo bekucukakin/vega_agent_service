@@ -4,8 +4,8 @@ com/vega/agentservice/infrastructure/controller/AgentController$CommitMessageApi
 com/vega/agentservice/infrastructure/service/GoogleAIConflictResolutionService.class
 com/vega/agentservice/domain/dto/PrAnalysisRequest.class
 com/vega/agentservice/infrastructure/service/GoogleAICommitMessageService.class
-com/vega/agentservice/domain/dto/CommitMessageRequest.class
 com/vega/agentservice/domain/dto/ConflictResolutionRequest.class
+com/vega/agentservice/domain/dto/CommitMessageRequest.class
 com/vega/agentservice/infrastructure/controller/AgentController$HealthResponse.class
 com/vega/agentservice/domain/dto/PrAnalysisResponse.class
 com/vega/agentservice/VegaAgentServiceApplication.class
