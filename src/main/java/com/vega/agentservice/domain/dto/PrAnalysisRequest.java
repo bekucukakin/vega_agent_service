@@ -17,6 +17,7 @@ public class PrAnalysisRequest {
     private List<String> riskReasons;     // rule-based reasons already computed
     private String riskLevel;             // LOW / MEDIUM / HIGH
     private String diffSample;            // optional: first ~3KB of unified diff
+    private String prType;               // BUG_FIX, HOTFIX, NEW_FEATURE, REFACTOR, PERFORMANCE, SECURITY, DOCUMENTATION, CHORE
 
     public PrAnalysisRequest() {}
 
@@ -49,4 +50,7 @@ public class PrAnalysisRequest {
 
     public String getDiffSample() { return diffSample; }
     public void setDiffSample(String diffSample) { this.diffSample = diffSample; }
+
+    public String getPrType() { return prType; }
+    public void setPrType(String prType) { this.prType = prType; }
 }

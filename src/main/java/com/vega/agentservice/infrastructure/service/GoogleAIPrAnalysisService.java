@@ -11,6 +11,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -57,7 +58,7 @@ public class GoogleAIPrAnalysisService {
     }
 
     /**
-     * Analyses a PR and returns contextual AI explanation + risk summary.
+     * Analyses a PR and returns contextual AI explanation + risk summary + structured findings.
      */
     public PrAnalysisResponse analyze(PrAnalysisRequest req) {
         if (!enabled) {
@@ -89,38 +90,45 @@ public class GoogleAIPrAnalysisService {
                 ? req.getDiffSample()
                 : "(diff not provided)";
 
+        String prTypeLabel = req.getPrType() != null ? req.getPrType().replace('_', ' ') : "UNSPECIFIED";
+
         return """
-You are a senior software engineer performing a code review. Analyse the following Pull Request and provide:
+You are a senior software engineer performing a code review. Analyse the following Pull Request carefully.
 
-1. A clear EXPLANATION (3-6 sentences) of what the changes do — what functionality is affected, why the changes exist, and any architectural impact.
-2. A RISK_SUMMARY (single sentence, max 20 words) capturing the most important risk.
+Respond ONLY in this exact format (do not add extra text outside the sections):
 
-Respond ONLY in this exact format:
 EXPLANATION:
-<your explanation here>
+<3-6 sentences describing what the changes do, what functionality is affected, and architectural impact>
 
 RISK_SUMMARY:
-<your single-sentence risk summary>
+<single sentence, max 20 words, capturing the most important risk>
+
+FINDINGS:
+<List each concrete finding on its own line in this exact format:>
+FINDING: SEVERITY=<HIGH|MEDIUM|LOW> CATEGORY=<SECURITY|LOGIC|PERFORMANCE|TESTING|CODE_QUALITY|DEPENDENCY|ARCHITECTURE> SCORE=<integer 1-20> TEXT=<one sentence finding description>
+<Add 2-5 FINDING lines. If no issues found, write: FINDING: SEVERITY=LOW CATEGORY=CODE_QUALITY SCORE=0 TEXT=No significant issues detected.>
 
 ---
 Pull Request Information:
 Repository : %s
 Author     : %s
 Branch     : %s → %s
-Risk Level : %s
+PR Type    : %s
+Risk Level : %s (from rule-based analysis)
 
 Changed Files (%d):
 %s
 
-Rule-Based Risk Reasons:
+Rule-Based Risk Reasons (already computed):
 %s
 
-Diff Sample (first ~3 KB):
+Diff Sample:
 %s
 """.formatted(
                 nvl(req.getRepositoryName()),
                 nvl(req.getAuthor()),
                 nvl(req.getSourceBranch()), nvl(req.getTargetBranch()),
+                prTypeLabel,
                 nvl(req.getRiskLevel()),
                 req.getFilesChanged() == null ? 0 : req.getFilesChanged().size(),
                 files,
@@ -203,26 +211,40 @@ Diff Sample (first ~3 KB):
     private PrAnalysisResponse parseResponse(String raw) {
         String explanation = "";
         String riskSummary = "";
+        List<String> findings = new ArrayList<>();
 
         java.util.regex.Matcher em = java.util.regex.Pattern
-                .compile("EXPLANATION:\\s*([\\s\\S]*?)(?=RISK_SUMMARY:|$)",
+                .compile("EXPLANATION:\\s*([\\s\\S]*?)(?=RISK_SUMMARY:|FINDINGS:|$)",
                          java.util.regex.Pattern.CASE_INSENSITIVE)
                 .matcher(raw);
         if (em.find()) explanation = em.group(1).trim();
 
         java.util.regex.Matcher rm = java.util.regex.Pattern
-                .compile("RISK_SUMMARY:\\s*([\\s\\S]*)",
+                .compile("RISK_SUMMARY:\\s*([\\s\\S]*?)(?=FINDINGS:|$)",
                          java.util.regex.Pattern.CASE_INSENSITIVE)
                 .matcher(raw);
         if (rm.find()) riskSummary = rm.group(1).trim();
 
+        // Parse structured findings
+        java.util.regex.Matcher fm = java.util.regex.Pattern
+                .compile("FINDING:\\s*SEVERITY=(\\w+)\\s+CATEGORY=(\\w+)\\s+SCORE=(\\d+)\\s+TEXT=(.+)",
+                         java.util.regex.Pattern.CASE_INSENSITIVE)
+                .matcher(raw);
+        while (fm.find()) {
+            String severity = fm.group(1).toUpperCase();
+            String category = fm.group(2).toUpperCase();
+            String score = fm.group(3);
+            String text = fm.group(4).trim();
+            // format: "SEVERITY:::CATEGORY:::description:::scoreDelta"
+            findings.add(severity + ":::" + category + ":::" + text + ":::" + score);
+        }
+
         if (explanation.isEmpty() && riskSummary.isEmpty()) {
-            // Model may have returned free text — use it all as explanation
             explanation = raw.trim();
             riskSummary = "See explanation for details.";
         }
 
-        return PrAnalysisResponse.success(explanation, riskSummary);
+        return PrAnalysisResponse.success(explanation, riskSummary, findings);
     }
 
     // ──────────────────────────────────────────────────────────────────────

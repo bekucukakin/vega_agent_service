@@ -7,7 +7,7 @@ target/
 # Logs
 logs/
 *.log
-
+/data
 # OS
 .DS_Store
 Thumbs.db
