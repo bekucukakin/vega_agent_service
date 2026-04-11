@@ -1,7 +1,9 @@
 # Maven — build output (all modules)
 target/
 !.mvn/wrapper/maven-wrapper.jar
-
+target/
+*.jar
+*.class
 # Logs
 logs/
 *.log
