@@ -22,8 +22,9 @@ public class ConflictResolutionRequest {
     private String filePath;
     
     @NotBlank(message = "language is required")
-    @jakarta.validation.constraints.Pattern(regexp = "^(java|javascript|python|cpp|c|go|rust|typescript|text)$", 
-        message = "language must be one of: java, javascript, python, cpp, c, go, rust, typescript, text")
+    @jakarta.validation.constraints.Pattern(
+        regexp = "^(java|javascript|python|cpp|c|go|rust|typescript|csharp|kotlin|scala|clojure|haskell|ocaml|fsharp|php|swift|ruby|html|css|scss|sass|less|xml|json|yaml|bash|powershell|batch|sql|markdown|rst|toml|ini|properties|text)$",
+        message = "language must be a recognized programming language or 'text'")
     private String language;
     
     @NotNull(message = "base content is required")
