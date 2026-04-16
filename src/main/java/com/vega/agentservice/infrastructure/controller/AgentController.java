@@ -1,5 +1,9 @@
 package com.vega.agentservice.infrastructure.controller;
 
+import com.vega.agentservice.domain.dto.CommitAnalysisRequest;
+import com.vega.agentservice.domain.dto.CommitAnalysisResponse;
+import com.vega.agentservice.domain.dto.CommitChatRequest;
+import com.vega.agentservice.domain.dto.CommitChatResponse;
 import com.vega.agentservice.domain.dto.CommitMessageRequest;
 import com.vega.agentservice.domain.dto.CommitMessageResponse;
 import com.vega.agentservice.domain.dto.ConflictResolutionRequest;
@@ -8,6 +12,7 @@ import com.vega.agentservice.domain.dto.PrAnalysisRequest;
 import com.vega.agentservice.domain.dto.PrAnalysisResponse;
 import com.vega.agentservice.domain.service.CommitMessageService;
 import com.vega.agentservice.domain.service.ConflictResolutionService;
+import com.vega.agentservice.infrastructure.service.GoogleAICommitAnalysisService;
 import com.vega.agentservice.infrastructure.service.GoogleAIPrAnalysisService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,14 +32,17 @@ public class AgentController {
     private final ConflictResolutionService conflictResolutionService;
     private final CommitMessageService commitMessageService;
     private final GoogleAIPrAnalysisService prAnalysisService;
+    private final GoogleAICommitAnalysisService commitAnalysisService;
 
     @Autowired
     public AgentController(ConflictResolutionService conflictResolutionService,
                            CommitMessageService commitMessageService,
-                           GoogleAIPrAnalysisService prAnalysisService) {
+                           GoogleAIPrAnalysisService prAnalysisService,
+                           GoogleAICommitAnalysisService commitAnalysisService) {
         this.conflictResolutionService = conflictResolutionService;
         this.commitMessageService = commitMessageService;
         this.prAnalysisService = prAnalysisService;
+        this.commitAnalysisService = commitAnalysisService;
     }
     
     /**
@@ -137,6 +145,48 @@ public class AgentController {
             return ResponseEntity.ok(result);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+    }
+
+    /**
+     * Structured AI analysis of a single commit.
+     * POST /api/agent/analyze-commit
+     * Request: { commitHash, commitMessage, author, diff }
+     * Response: { summary, changes, risks, riskLevel, success, error }
+     */
+    @PostMapping("/analyze-commit")
+    public ResponseEntity<CommitAnalysisResponse> analyzeCommit(
+            @RequestBody(required = false) CommitAnalysisRequest request) {
+        if (request == null) {
+            return ResponseEntity.badRequest().body(CommitAnalysisResponse.failure("Request body is required"));
+        }
+        if (!commitAnalysisService.isAvailable()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(CommitAnalysisResponse.failure("AI service not configured. Set GOOGLE_AI_API_KEY."));
+        }
+        CommitAnalysisResponse result = commitAnalysisService.analyze(request);
+        return result.isSuccess() ? ResponseEntity.ok(result)
+                : ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+    }
+
+    /**
+     * Conversational Q&A about a commit.
+     * POST /api/agent/commit-chat
+     * Request: { commitContext, question, history: [{role, message}] }
+     * Response: { answer, success, error }
+     */
+    @PostMapping("/commit-chat")
+    public ResponseEntity<CommitChatResponse> commitChat(
+            @RequestBody(required = false) CommitChatRequest request) {
+        if (request == null || request.getQuestion() == null || request.getQuestion().isBlank()) {
+            return ResponseEntity.badRequest().body(CommitChatResponse.failure("question is required"));
+        }
+        if (!commitAnalysisService.isAvailable()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(CommitChatResponse.failure("AI service not configured. Set GOOGLE_AI_API_KEY."));
+        }
+        CommitChatResponse result = commitAnalysisService.chat(request);
+        return result.isSuccess() ? ResponseEntity.ok(result)
+                : ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
     }
 
     /**
