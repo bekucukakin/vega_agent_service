@@ -2,6 +2,8 @@ package com.vega.agentservice.infrastructure.service;
 
 import com.vega.agentservice.domain.dto.PrAnalysisRequest;
 import com.vega.agentservice.domain.dto.PrAnalysisResponse;
+import com.vega.agentservice.domain.dto.PrChatRequest;
+import com.vega.agentservice.domain.dto.PrChatResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -267,4 +269,61 @@ Diff Sample:
     }
 
     private String nvl(String s) { return s != null ? s : ""; }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // PR Conversational Chat
+    // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * Multi-turn conversational Q&A about a pull request.
+     * Detects the user's language from the question and replies in the same language.
+     */
+    public PrChatResponse prChat(PrChatRequest req) {
+        if (!enabled) {
+            return PrChatResponse.failure("AI service not configured. Set GOOGLE_AI_API_KEY.");
+        }
+        try {
+            String prompt = buildPrChatPrompt(req);
+            String raw = callGoogleAI(prompt);
+            return PrChatResponse.success(raw.trim());
+        } catch (Exception e) {
+            return PrChatResponse.failure("PR chat failed: " + e.getMessage());
+        }
+    }
+
+    private String buildPrChatPrompt(PrChatRequest req) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("""
+You are a helpful code review assistant for the VEGA version control system.
+A developer is asking questions about a specific pull request.
+
+IMPORTANT: Detect the language of the developer's question and respond in EXACTLY that language.
+If the question is in Turkish, respond in Turkish. If in English, respond in English. Match the developer's language precisely.
+
+The latest developer question is the highest-priority instruction.
+Always use full PR context and conversation history below.
+When useful, cite concrete files, diffs, risk signals, and metrics from the context.
+Do not ignore the user's question in favor of generic summaries.
+If context is missing, say exactly what is missing.
+Provide clear, detailed, and helpful answers. Be thorough but concise.
+
+Pull Request context:
+""");
+        sb.append(nvl(req.getPrContext())).append("\n\n");
+
+        List<PrChatRequest.ChatTurn> history = req.getHistory();
+        if (history != null && !history.isEmpty()) {
+            sb.append("Previous conversation:\n");
+            for (PrChatRequest.ChatTurn turn : history) {
+                sb.append(turn.getRole().equals("user") ? "Developer: " : "Assistant: ");
+                sb.append(turn.getMessage()).append("\n");
+            }
+            sb.append("\n");
+        }
+
+        sb.append("Latest developer question (MOST IMPORTANT): ")
+          .append(nvl(req.getQuestion()))
+          .append("\nAssistant:");
+        return sb.toString();
+    }
 }

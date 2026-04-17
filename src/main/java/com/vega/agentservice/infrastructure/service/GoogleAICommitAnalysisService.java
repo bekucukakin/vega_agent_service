@@ -159,8 +159,13 @@ Diff:
     private String buildChatPrompt(CommitChatRequest req) {
         StringBuilder sb = new StringBuilder();
         sb.append("""
-You are a helpful code assistant. A developer is asking questions about a specific git commit.
-Answer concisely and accurately. If unsure, say so.
+You are a helpful code assistant for VEGA commit review.
+The latest developer question is the highest-priority instruction.
+Always use the full commit context and conversation history below.
+When relevant, reference concrete files, diffs, and metrics from the provided context.
+Do not ignore the user's question in favor of generic summaries.
+If context is missing, say exactly what is missing.
+Answer concisely and accurately.
 
 Commit context:
 """);
@@ -176,7 +181,9 @@ Commit context:
             sb.append("\n");
         }
 
-        sb.append("Developer: ").append(nvl(req.getQuestion())).append("\nAssistant:");
+        sb.append("Latest developer question (MOST IMPORTANT): ")
+          .append(nvl(req.getQuestion()))
+          .append("\nAssistant:");
         return sb.toString();
     }
 

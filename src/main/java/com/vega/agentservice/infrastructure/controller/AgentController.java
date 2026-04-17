@@ -10,6 +10,8 @@ import com.vega.agentservice.domain.dto.ConflictResolutionRequest;
 import com.vega.agentservice.domain.dto.ConflictResolutionResponse;
 import com.vega.agentservice.domain.dto.PrAnalysisRequest;
 import com.vega.agentservice.domain.dto.PrAnalysisResponse;
+import com.vega.agentservice.domain.dto.PrChatRequest;
+import com.vega.agentservice.domain.dto.PrChatResponse;
 import com.vega.agentservice.domain.service.CommitMessageService;
 import com.vega.agentservice.domain.service.ConflictResolutionService;
 import com.vega.agentservice.infrastructure.service.GoogleAICommitAnalysisService;
@@ -185,6 +187,28 @@ public class AgentController {
                     .body(CommitChatResponse.failure("AI service not configured. Set GOOGLE_AI_API_KEY."));
         }
         CommitChatResponse result = commitAnalysisService.chat(request);
+        return result.isSuccess() ? ResponseEntity.ok(result)
+                : ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+    }
+
+    /**
+     * Conversational Q&A about a pull request.
+     * POST /api/agent/pr-chat
+     * Request: { prContext, question, history: [{role, message}] }
+     * Response: { answer, success, error }
+     * Responds in the same language as the question.
+     */
+    @PostMapping("/pr-chat")
+    public ResponseEntity<PrChatResponse> prChat(
+            @RequestBody(required = false) PrChatRequest request) {
+        if (request == null || request.getQuestion() == null || request.getQuestion().isBlank()) {
+            return ResponseEntity.badRequest().body(PrChatResponse.failure("question is required"));
+        }
+        if (!prAnalysisService.isAvailable()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(PrChatResponse.failure("AI service not configured. Set GOOGLE_AI_API_KEY."));
+        }
+        PrChatResponse result = prAnalysisService.prChat(request);
         return result.isSuccess() ? ResponseEntity.ok(result)
                 : ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
     }
