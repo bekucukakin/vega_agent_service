@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 
 /**
  * REST Controller for Vega Agent Service
@@ -225,6 +226,20 @@ public class AgentController {
             "Vega Agent Service",
             available ? "READY" : "NOT_CONFIGURED",
             available
+        ));
+    }
+
+    /**
+     * Runtime model health snapshot for adaptive fallback visibility.
+     * NOTE: "remainingQuota" is not exact provider quota, only runtime availability/cooldown view.
+     */
+    @GetMapping("/model-health")
+    public ResponseEntity<Map<String, Object>> modelHealth() {
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "note", "remainingQuota is runtime-estimated; exact provider quota is not available from request path.",
+                "commitAnalysisModels", commitAnalysisService.getModelHealthSnapshot(),
+                "prAnalysisModels", prAnalysisService.getModelHealthSnapshot()
         ));
     }
     

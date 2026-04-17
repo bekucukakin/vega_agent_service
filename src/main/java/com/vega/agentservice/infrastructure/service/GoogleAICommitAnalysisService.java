@@ -13,7 +13,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -32,33 +34,34 @@ public class GoogleAICommitAnalysisService {
             "https://generativelanguage.googleapis.com/v1beta/%s:generateContent";
 
     private static final String[] MODEL_NAMES = {
-        "models/gemini-3.1-flash-lite",
         "models/gemini-2.5-flash-lite",
-        "models/gemini-3-flash-preview",
-        "models/gemma-3-27b-it",
         "models/gemini-2.5-flash",
-        "models/gemini-2.5-pro",
-        "models/gemini-2.0-flash",
-        "models/gemini-1.5-pro",
-        "models/gemini-1.5-flash",
-        "models/gemini-pro"
+        "models/gemini-2.0-flash"
     };
 
-    private static final Duration TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration TOTAL_TIMEOUT = Duration.ofSeconds(25);
 
     private final String apiKey;
     private final HttpClient httpClient;
     private final boolean enabled;
+    private final ModelHealthTracker modelHealthTracker;
 
-    public GoogleAICommitAnalysisService(@Value("${google.ai.api-key:}") String apiKey) {
+    public GoogleAICommitAnalysisService(@Value("${google.ai.api-key:}") String apiKey,
+                                         ModelHealthTracker modelHealthTracker) {
         String key = (apiKey != null && !apiKey.isEmpty()) ? apiKey : System.getenv("GOOGLE_AI_API_KEY");
         this.apiKey = key;
         this.enabled = (key != null && !key.isEmpty());
         this.httpClient = HttpClient.newBuilder().connectTimeout(TIMEOUT).build();
+        this.modelHealthTracker = modelHealthTracker;
     }
 
     public boolean isAvailable() {
         return enabled;
+    }
+
+    public List<Map<String, Object>> getModelHealthSnapshot() {
+        return modelHealthTracker.snapshot(MODEL_NAMES);
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -205,17 +208,24 @@ Commit context:
             """.formatted(escapeJson(prompt));
 
         Exception last = null;
-        for (String model : MODEL_NAMES) {
+        Instant deadline = Instant.now().plus(TOTAL_TIMEOUT);
+        for (String model : modelHealthTracker.orderCandidates(MODEL_NAMES)) {
+            if (Instant.now().isAfter(deadline)) {
+                throw new Exception("AI request timed out before model fallback completed.");
+            }
             String url = String.format(API_ENDPOINT_TEMPLATE, model) + "?key=" + apiKey;
             try {
-                return callWithModel(url, body);
+                String answer = callWithModel(url, body);
+                modelHealthTracker.recordSuccess(model);
+                return answer;
             } catch (Exception e) {
                 last = e;
+                modelHealthTracker.recordFailure(model, e.getMessage());
                 if (shouldTryNext(e)) continue;
                 throw e;
             }
         }
-        throw new Exception("All Gemini models failed. Last: " + (last != null ? last.getMessage() : "?"));
+        throw new Exception("All Gemini models failed quickly. Last: " + (last != null ? last.getMessage() : "?"));
     }
 
     private String callWithModel(String url, String body) throws Exception {
